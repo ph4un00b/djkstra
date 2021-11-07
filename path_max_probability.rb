@@ -50,8 +50,8 @@ end
 def get_adjacent_list(weights, edges, num_nodes)
   result = Array.new(num_nodes, [])
   edges.each_with_index do |(a, b), index|
-    result[a] = [*result[a], [1 / weights[index], b]]
-    result[b] = [*result[b], [1 / weights[index], a]]
+    result[a] = [*result[a], [1.0 / weights[index], b]]
+    result[b] = [*result[b], [1.0 / weights[index], a]]
   end
   result
 end
