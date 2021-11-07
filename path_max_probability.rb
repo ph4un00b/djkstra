@@ -11,6 +11,30 @@
 
 require 'set'
 
+BEST_PROBABILITY = 1.0
+def max_probability_with_queues(n, edges, succ_prob, start, finito)
+  distances = [Float::INFINITY] * n
+  distances[start] = BEST_PROBABILITY
+
+  queue = []
+  queue.push([BEST_PROBABILITY, start])
+
+  adjacent_list = get_adjacent_list(succ_prob, edges, n)
+
+  until queue.empty?
+    current_probability, current_node = queue.shift
+
+    adjacent_list[current_node].each do |(probability, node)|
+      if current_probability * probability < distances[node]
+        queue.push([current_probability * probability, node])
+        distances[node] = [current_probability * probability, distances[node]].min
+      end
+    end
+  end
+
+  1.0 / distances[finito]
+end
+
 def max_probability(n, edges, succ_prob, start, finito)
   distances = [Float::INFINITY] * n
   distances[start] = 1.0
@@ -18,17 +42,17 @@ def max_probability(n, edges, succ_prob, start, finito)
   adjacent_list = get_adjacent_list(succ_prob, edges, n)
 
   until path.size == n
-    closest_distance, closest_node = get_closest_node(distances, path)
+    closest_distance, closest_node = closest_branch(distances, path)
     break if closest_node.nil?
 
     path.add closest_node
-    updates_adjacent_distances(adjacent_list[closest_node], path, distances, closest_distance)
+    collect_distances!(adjacent_list[closest_node], path, distances, closest_distance)
   end
 
   1.0 / distances[finito]
 end
 
-def updates_adjacent_distances(adjancent_nodes, path, distances, closest_distance)
+def collect_distances!(adjancent_nodes, path, distances, closest_distance)
   adjancent_nodes.each do |(current_distance, current_node)|
     unless path.include? current_node
       new_distance = current_distance * closest_distance
@@ -37,7 +61,7 @@ def updates_adjacent_distances(adjancent_nodes, path, distances, closest_distanc
   end
 end
 
-def get_closest_node(distances, path)
+def closest_branch(distances, path)
   distances.each_with_index.inject([Float::INFINITY, nil]) do |(optimal_distance, optimal_node), (distance, node)|
     if distance < optimal_distance && !path.include?(node)
       [distance, node]
