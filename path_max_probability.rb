@@ -13,18 +13,16 @@ require 'set'
 
 def max_probability(n, edges, succ_prob, start, finito)
   distances = [Float::INFINITY] * n
-  distances[start] = 1.0 # not 0 since we use multiplation
-  unvisited = (0...n).to_a
+  distances[start] = 1.0
   path = Set.new
   adjacent_list = get_adjacent_list(succ_prob, edges, n)
 
-  until unvisited.empty?
+  until path.size == n
     closest_distance, closest_node = get_closest_node(distances, path)
     break if closest_node.nil?
 
-    updates_adjacent_distances(adjacent_list[closest_node], path, distances, closest_distance)
-    unvisited.reject! { |node| node == closest_node }
     path.add closest_node
+    updates_adjacent_distances(adjacent_list[closest_node], path, distances, closest_distance)
   end
 
   1.0 / distances[finito]
@@ -51,14 +49,10 @@ end
 
 def get_adjacent_list(weights, edges, num_nodes)
   result = Array.new(num_nodes, [])
-
-  edges.each_with_index do |edge, index|
-    a, b = edge
-
+  edges.each_with_index do |(a, b), index|
     result[a] = [*result[a], [1 / weights[index], b]]
     result[b] = [*result[b], [1 / weights[index], a]]
   end
-
   result
 end
 
