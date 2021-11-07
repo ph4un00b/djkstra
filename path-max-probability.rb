@@ -19,7 +19,16 @@ def max_probability(n, edges, succ_prob, start, finito)
     adjacent_list = get_adjacent_list(succ_prob, edges, n)
 
     while unvisited.size != 0
-        closest_node, closest_distance = get_closest_node(distances, path)
+        # closest_node, closest_distance = get_closest_node(distances, path)
+		closest_distance, closest_node = distances.each_with_index.inject([Float::INFINITY, nil]) do
+			|(optimal_distance, optimal_node), (distance, node)|
+
+            if distance < optimal_distance && !path.include?(node)
+                [distance, node]
+			else
+                [optimal_distance, optimal_node]
+            end
+        end
 
         break if closest_node.nil?
 
@@ -30,6 +39,7 @@ def max_probability(n, edges, succ_prob, start, finito)
                 update_distances(current_node, current_distance * closest_distance, distances)
             end
         end
+
         unvisited.select! { |node| node != closest_node }
         path.add closest_node
     end
