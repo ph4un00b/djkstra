@@ -21,13 +21,13 @@ def max_probability_with_queues(n, edges, succ_prob, start, finito)
 
   until queue.empty?
     current_cost, current_node = queue.shift
-    relax_distances_q!(distances, adjacent_list[current_node], current_cost)
+    relax_distances_q!(distances, queue, adjacent_list[current_node], current_cost)
   end
 
   1.0 / distances[finito]
 end
 
-def relax_distances_q!(distances, edges, current_cost)
+def relax_distances_q!(distances, queue, edges, current_cost)
   edges.each do |(edge_cost, edge_destiny)|
     new_cost = current_cost * edge_cost
     if new_cost < distances[edge_destiny]
