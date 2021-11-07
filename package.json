@@ -4,7 +4,7 @@
   "description": "",
   "main": "leetcode.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "vim": "!clear | npx coffee --compile % | node %:r"
   },
   "repository": {
     "type": "git",
