@@ -22,7 +22,7 @@ def max_probability(n, edges, succ_prob, start, finito)
     closest_distance, closest_node = get_closest_node(distances, path)
     break if closest_node.nil?
 
-    updates_distances_list(adjacent_list[closest_node], path, distances, closest_node, closest_distance)
+    updates_adjacent_distances(adjacent_list[closest_node], path, distances, closest_distance)
     unvisited.reject! { |node| node == closest_node }
     path.add closest_node
   end
@@ -30,7 +30,7 @@ def max_probability(n, edges, succ_prob, start, finito)
   1.0 / distances[finito]
 end
 
-def updates_distances_list(adjancent_nodes, path, distances, closest_node, closest_distance)
+def updates_adjacent_distances(adjancent_nodes, path, distances, closest_distance)
   adjancent_nodes.each do |(current_distance, current_node)|
     unless path.include? current_node
       new_distance = current_distance * closest_distance
