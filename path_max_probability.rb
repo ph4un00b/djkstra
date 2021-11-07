@@ -11,28 +11,30 @@
 
 require 'set'
 
-BEST_PROBABILITY = 1.0
+OPTIMAL_COST = 1.0
 def max_probability_with_queues(n, edges, succ_prob, start, finito)
   distances = [Float::INFINITY] * n
-  distances[start] = BEST_PROBABILITY
-
+  distances[start] = OPTIMAL_COST
   queue = []
-  queue.push([BEST_PROBABILITY, start])
-
+  queue.push([OPTIMAL_COST, start])
   adjacent_list = get_adjacent_list(succ_prob, edges, n)
 
   until queue.empty?
-    current_probability, current_node = queue.shift
-
-    adjacent_list[current_node].each do |(probability, node)|
-      if current_probability * probability < distances[node]
-        queue.push([current_probability * probability, node])
-        distances[node] = [current_probability * probability, distances[node]].min
-      end
-    end
+    current_cost, current_node = queue.shift
+    relax_distances_q!(distances, adjacent_list[current_node], current_cost)
   end
 
   1.0 / distances[finito]
+end
+
+def relax_distances_q!(distances, edges, current_cost)
+  edges.each do |(edge_cost, edge_destiny)|
+    new_cost = current_cost * edge_cost
+    if new_cost < distances[edge_destiny]
+      queue.push [new_cost, edge_destiny]
+      distances[edge_destiny] = [new_cost, distances[edge_destiny]].min
+    end
+  end
 end
 
 def max_probability(n, edges, succ_prob, start, finito)
@@ -46,17 +48,17 @@ def max_probability(n, edges, succ_prob, start, finito)
     break if closest_node.nil?
 
     path.add closest_node
-    collect_distances!(adjacent_list[closest_node], path, distances, closest_distance)
+    relax_distances!(adjacent_list[closest_node], path, distances, closest_distance)
   end
 
   1.0 / distances[finito]
 end
 
-def collect_distances!(adjancent_nodes, path, distances, closest_distance)
-  adjancent_nodes.each do |(current_distance, current_node)|
-    unless path.include? current_node
-      new_distance = current_distance * closest_distance
-      distances[current_node] = [new_distance, distances[current_node]].min
+def relax_distances!(edges, path, distances, closest_distance)
+  edges.each do |(edge_cost, edge_destiny)|
+    unless path.include? edge_destiny
+      new_distance = edge_cost * closest_distance
+      distances[edge_destiny] = [new_distance, distances[edge_destiny]].min
     end
   end
 end
