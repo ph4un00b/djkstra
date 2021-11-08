@@ -101,6 +101,45 @@ class MinHeap
 end
 
 OPTIMAL_COST = 1.0
+
+def max_probability_with_heap(n, edges, succ_prob, start, finito)
+  distances = [Float::INFINITY] * n
+  distances[start] = OPTIMAL_COST
+  heap = MinHeap.new([Float::INFINITY] * n)
+  heap.update(start, OPTIMAL_COST)
+  adjacent_list = adjacent_edges(succ_prob, edges, n)
+  path = Set.new
+
+  # time O(v)
+  until path.size == n
+    # time log(v)
+    current_cost, current_node = heap.remove!
+
+    break if current_cost == Float::INFINITY
+
+    # time O(edges)
+    unless path.include? current_node
+      relax_distances!(adjacent_list[closest_node], path,heap, distances, current_cost)
+      path.add current_node
+    end
+  end
+
+  1.0 / distances[finito]
+end
+
+def relax_distances_h!(edges,path,heap, distances, current_cost)
+  edges.each do |(edge_cost, edge_destiny)|
+    unless path.include? edge_destiny
+      if new_cost < distances[edge_destiny]
+        new_cost = edge_cost * current_cost
+        distances[edge_destiny] = new_cost
+        # time log(v)
+        heap.update edge_destiny, new_cost
+      end
+    end
+  end
+end
+
 def max_probability_with_queues(n, edges, succ_prob, start, finito)
   distances = [Float::INFINITY] * n
   distances[start] = OPTIMAL_COST
