@@ -34,8 +34,15 @@ class MinHeap
 
   # time O(log n)
   def update!(node, cost)
+    p 'node'
+    p node
+
+    p 'cos'
+    p cost
     @heap[@nodes[node]] = [cost, node]
     sift_up(@nodes[node], @heap)
+    p @nodes
+    p @heap
   end
 
   # time O(log n)
@@ -225,6 +232,12 @@ weights = [0.5, 0.5, 0.2]
 n = 3
 start = 0
 finito = 2
+
+n = 5
+edges = [[2,3],[1,2],[3,4],[1,3],[1,4],[0,1],[2,4],[0,4],[0,2]]
+weights = [0.06,0.26,0.49,0.25,0.2,0.64,0.23,0.21,0.77]
+start = 0
+finito = 3
 
 p max_probability(n, edges, weights, start, finito)
 p max_probability_with_queues(n, edges, weights, start, finito)
