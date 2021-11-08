@@ -9,8 +9,9 @@ class MinHeap
   TOP_HEAP = 0
   # array can be unsorted
   def initialize(array)
-    @nodes = array.each_with_index.each_with_object({}) do |(_value, index), memo|
+    @nodes = array.each_with_index.each_with_object({}) do |(_, index), memo|
       memo[index] = index
+      memo
     end
 
     @heap = build_heap(array)
@@ -20,7 +21,7 @@ class MinHeap
   def build_heap(array)
     last_index = array.size - 1
     first_parent_index = ((last_index - 1) / 2).floor
-    (0..first_parent_index).reverse.each do |index|
+    (0..first_parent_index).to_a.reverse.each do |index|
       sift_down(index, array.size, array)
     end
 
@@ -46,10 +47,13 @@ class MinHeap
 
   # time O(log n)
   def remove!
+    return if empty?
+
     last_index = @heap.size - 1
     swap(TOP_HEAP, last_index, @heap)
     cost, value_to_remove = @heap.pop
     @nodes.delete value_to_remove
+    last_index = @heap.size - 1
     sift_down(TOP_HEAP, last_index, @heap)
 
     [cost, value_to_remove]
@@ -65,20 +69,26 @@ class MinHeap
   def sift_down(current_index, last_index, heap)
     child_left_index = current_index * 2 + 1
     while child_left_index <= last_index
-      child_right_index = current_index * 2 + 2 <= last_index ? current_index * 2 + 2 : -1
-
-      cost_a = heap[child_left_index].first
-      cost_b = heap[child_right_index].first
-      index_to_swap = child_right_index != -1 && cost_b < cost_a ? child_right_index : child_left_index
+      child_right_index = if current_index * 2 + 2 <= last_index
+                            current_index * 2 + 2
+                          else
+                            -1
+                          end
+      index_to_swap = if child_right_index != -1 && heap[child_right_index][0] < heap[child_left_index][0]
+                        child_right_index
+                      else
+                        child_left_index
+                      end
 
       cost_to_swap = heap[index_to_swap].first
       cost_current = heap[current_index].first
+
       if cost_to_swap < cost_current
         swap(index_to_swap, current_index, heap)
         current_index = index_to_swap
         child_left_index = current_index * 2 + 1
       else
-        break # since it is in the correct position
+        break
       end
     end
   end
@@ -108,8 +118,12 @@ OPTIMAL_COST = 1.0
 def max_probability_with_heap(n, edges, succ_prob, start, finito)
   distances = [Float::INFINITY] * n
   distances[start] = OPTIMAL_COST
-  heap = MinHeap.new([Float::INFINITY] * n)
-  heap.update(start, OPTIMAL_COST)
+
+  heap_distances = []
+  (0...n).each { |index| heap_distances << [Float::INFINITY, index] }
+  heap = MinHeap.new(heap_distances)
+  heap.update!(start, OPTIMAL_COST)
+
   adjacent_list = adjacent_edges(succ_prob, edges, n)
 
   # time O(v)
@@ -132,7 +146,7 @@ def relax_distances_h!(edges, heap, distances, current_cost)
 
     distances[edge_destiny] = new_cost
     # time log(v)
-    heap.update edge_destiny, new_cost
+    heap.update! edge_destiny, new_cost
   end
 end
 
@@ -213,3 +227,5 @@ start = 0
 finito = 2
 
 p max_probability(n, edges, weights, start, finito)
+p max_probability_with_queues(n, edges, weights, start, finito)
+p max_probability_with_heap(n, edges, weights, start, finito)
