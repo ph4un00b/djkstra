@@ -4,241 +4,174 @@
 
 require 'set'
 
-# binary tree is 'complete'
-class MinHeap
-  TOP_HEAP = 0
-  # array can be unsorted
-  def initialize(array)
-    @nodes = array.each_with_index.each_with_object({}) do |(_, index), memo|
-      memo[index] = index
-      memo
+OPTIMAL_COST = 1.0
+
+# djsktra with heap time: O(n + e) * O(log n)
+# todo: implement heap
+class DjsktraHeap
+  def initialize(num_vertices, edges, succ_prob)
+    @distances = [Float::INFINITY] * num_vertices
+    heap_distances = []
+    (0...num_vertices).to_a.each { |node| heap_distances << [Float::INFINITY, node] }
+    @heap = MinHeap.new(heap_distances)
+    @adjacent_list = adjacent_edges(succ_prob, edges, num_vertices)
+  end
+
+  def execute(start, finito)
+    @distances[start] = OPTIMAL_COST
+    @heap.update!(OPTIMAL_COST, start)
+
+    until @heap.empty?
+      current_cost, current_node = @heap.remove!
+      break if current_cost == Float::INFINITY
+
+      relax_distances!(@adjacent_list[current_node], current_cost)
     end
 
-    @heap = build_heap(array)
-  end
-
-  # time O(n)
-  def build_heap(array)
-    last_index = array.size - 1
-    first_parent_index = ((last_index - 1) / 2).floor
-    (0..first_parent_index).to_a.reverse.each do |index|
-      sift_down(index, array.size, array)
-    end
-
-    array
-  end
-
-  def empty?
-    @heap.empty?
-  end
-
-  # time O(log n)
-  def update!(node, cost)
-    p 'node'
-    p node
-
-    p 'cos'
-    p cost
-    @heap[@nodes[node]] = [cost, node]
-    sift_up(@nodes[node], @heap)
-    p @nodes
-    p @heap
-  end
-
-  # time O(log n)
-  def insert!(value)
-    @heap.push value
-    last_index = @heap.size - 1
-    sift_up(last_index, @heap)
-  end
-
-  # time O(log n)
-  def remove!
-    return if empty?
-
-    last_index = @heap.size - 1
-    swap(TOP_HEAP, last_index, @heap)
-    cost, value_to_remove = @heap.pop
-    @nodes.delete value_to_remove
-    last_index = @heap.size - 1
-    sift_down(TOP_HEAP, last_index, @heap)
-
-    [cost, value_to_remove]
-  end
-
-  def peek
-    @heap.first
+    inverse @distances[finito]
   end
 
   private
 
-  # time O(log n)
-  def sift_down(current_index, last_index, heap)
-    child_left_index = current_index * 2 + 1
-    while child_left_index <= last_index
-      child_right_index = if current_index * 2 + 2 <= last_index
-                            current_index * 2 + 2
-                          else
-                            -1
-                          end
-      index_to_swap = if child_right_index != -1 && heap[child_right_index][0] < heap[child_left_index][0]
-                        child_right_index
-                      else
-                        child_left_index
-                      end
+  def inverse(number)
+    1.0 / number
+  end
 
-      cost_to_swap = heap[index_to_swap].first
-      cost_current = heap[current_index].first
+  def relax_distances!(edges, current_cost)
+    edges.each do |(edge_cost, edge_destiny)|
+      new_cost = edge_cost * current_cost
+      next unless new_cost < @distances[edge_destiny]
 
-      if cost_to_swap < cost_current
-        swap(index_to_swap, current_index, heap)
-        current_index = index_to_swap
-        child_left_index = current_index * 2 + 1
-      else
-        break
+      @distances[edge_destiny] = new_cost
+      @heap.update!(edge_destiny, new_cost)
+    end
+  end
+
+  def adjacent_edges(weights, edges, num_nodes)
+    result = Array.new(num_nodes, [])
+    edges.each_with_index do |(a, b), index|
+      result[a] = [*result[a], [inverse(weights[index]), b]]
+      result[b] = [*result[b], [inverse(weights[index]), a]]
+    end
+    result
+  end
+end
+
+# djsktra with queue time: O(n*e)
+class DjsktraQ
+  def initialize(num_vertices, edges, succ_prob)
+    @distances = [Float::INFINITY] * num_vertices
+    @queue = []
+    @adjacent_list = adjacent_edges(succ_prob, edges, num_vertices)
+  end
+
+  def execute(start, finito)
+    @distances[start] = OPTIMAL_COST
+    @queue.push([OPTIMAL_COST, start])
+
+    until @queue.empty?
+      current_cost, current_node = @queue.shift
+      relax_distances!(@adjacent_list[current_node], current_cost)
+    end
+
+    inverse @distances[finito]
+  end
+
+  private
+
+  def inverse(number)
+    1.0 / number
+  end
+
+  def relax_distances!(edges, current_cost)
+    edges.each do |(edge_cost, edge_destiny)|
+      new_cost = current_cost * edge_cost
+      if new_cost < @distances[edge_destiny]
+        @queue.push [new_cost, edge_destiny]
+        @distances[edge_destiny] = [new_cost, @distances[edge_destiny]].min
       end
     end
   end
 
-  # time O(log n)
-  def sift_up(current_index, heap)
-    parent_index = ((current_index - 1) / 2).floor
+  def adjacent_edges(weights, edges, num_nodes)
+    result = Array.new(num_nodes, [])
+    edges.each_with_index do |(a, b), index|
+      result[a] = [*result[a], [inverse(weights[index]), b]]
+      result[b] = [*result[b], [inverse(weights[index]), a]]
+    end
+    result
+  end
+end
 
-    cost_current = heap[current_index].first
-    cost_parent = heap[parent_index].first
-    while current_index > TOP_HEAP && cost_current < cost_parent
-      swap(current_index, parent_index, heap)
-      current_index = parent_index
-      parent_index = ((current_index - 1) / 2).floor
+# el dijsktra, time: O(n^2 * e)
+class Djsktra
+  def initialize(num_nodes, edges_list, costs)
+    @distances = [Float::INFINITY] * num_nodes
+    @path = Set.new
+    @adjacent_list = adjacent_edges(costs, edges_list, num_nodes)
+  end
+
+  def execute(start, finito)
+    @distances[start] = 1.0
+
+    until @path.size == @distances.size
+      closest_distance, closest_node = closest_branch
+      break if closest_node.nil?
+
+      @path.add closest_node
+      relax_distances!(@adjacent_list[closest_node], closest_distance)
+    end
+
+    inverse @distances[finito]
+  end
+
+  private
+
+  def inverse(number)
+    1.0 / number
+  end
+
+  def relax_distances!(edges, closest_distance)
+    edges.each do |(edge_cost, edge_destiny)|
+      unless @path.include? edge_destiny
+        new_distance = edge_cost * closest_distance
+        @distances[edge_destiny] = [new_distance, @distances[edge_destiny]].min
+      end
     end
   end
 
-  def swap(a, b, heap)
-    tmp = heap[a]
-    heap[a] = heap[b]
-    heap[b] = tmp
-  end
-end
-
-OPTIMAL_COST = 1.0
-
-def max_probability_with_heap(n, edges, succ_prob, start, finito)
-  distances = [Float::INFINITY] * n
-  distances[start] = OPTIMAL_COST
-
-  heap_distances = []
-  (0...n).each { |index| heap_distances << [Float::INFINITY, index] }
-  heap = MinHeap.new(heap_distances)
-  heap.update!(start, OPTIMAL_COST)
-
-  adjacent_list = adjacent_edges(succ_prob, edges, n)
-
-  # time O(v)
-  until heap.empty?
-    # time log(v)
-    current_cost, current_node = heap.remove!
-    break if current_cost == Float::INFINITY
-
-    # time O(edges)
-    relax_distances_h!(adjacent_list[current_node], heap, distances, current_cost)
-  end
-
-  1.0 / distances[finito]
-end
-
-def relax_distances_h!(edges, heap, distances, current_cost)
-  edges.each do |(edge_cost, edge_destiny)|
-    new_cost = edge_cost * current_cost
-    next unless new_cost < distances[edge_destiny]
-
-    distances[edge_destiny] = new_cost
-    # time log(v)
-    heap.update! edge_destiny, new_cost
-  end
-end
-
-def max_probability_with_queues(n, edges, succ_prob, start, finito)
-  distances = [Float::INFINITY] * n
-  distances[start] = OPTIMAL_COST
-  queue = []
-  queue.push([OPTIMAL_COST, start])
-  adjacent_list = adjacent_edges(succ_prob, edges, n)
-
-  until queue.empty?
-    current_cost, current_node = queue.shift
-    relax_distances_q!(distances, queue, adjacent_list[current_node], current_cost)
-  end
-
-  1.0 / distances[finito]
-end
-
-def relax_distances_q!(distances, queue, edges, current_cost)
-  edges.each do |(edge_cost, edge_destiny)|
-    new_cost = current_cost * edge_cost
-    if new_cost < distances[edge_destiny]
-      queue.push [new_cost, edge_destiny]
-      distances[edge_destiny] = [new_cost, distances[edge_destiny]].min
+  def closest_branch
+    @distances.each_with_index.inject([Float::INFINITY, nil]) do |(optimal_distance, optimal_node), (distance, node)|
+      if distance < optimal_distance && !@path.include?(node)
+        [distance, node]
+      else
+        [optimal_distance, optimal_node]
+      end
     end
   end
-end
 
-def max_probability(n, edges, succ_prob, start, finito)
-  distances = [Float::INFINITY] * n
-  distances[start] = 1.0
-  path = Set.new
-  adjacent_list = adjacent_edges(succ_prob, edges, n)
-
-  until path.size == n
-    closest_distance, closest_node = closest_branch(distances, path)
-    break if closest_node.nil?
-
-    path.add closest_node
-    relax_distances!(adjacent_list[closest_node], path, distances, closest_distance)
-  end
-
-  1.0 / distances[finito]
-end
-
-def relax_distances!(edges, path, distances, closest_distance)
-  edges.each do |(edge_cost, edge_destiny)|
-    unless path.include? edge_destiny
-      new_distance = edge_cost * closest_distance
-      distances[edge_destiny] = [new_distance, distances[edge_destiny]].min
+  def adjacent_edges(weights, edges, num_nodes)
+    result = Array.new(num_nodes, [])
+    edges.each_with_index do |(a, b), index|
+      result[a] = [*result[a], [inverse(weights[index]), b]]
+      result[b] = [*result[b], [inverse(weights[index]), a]]
     end
+    result
   end
 end
 
-def closest_branch(distances, path)
-  distances.each_with_index.inject([Float::INFINITY, nil]) do |(optimal_distance, optimal_node), (distance, node)|
-    if distance < optimal_distance && !path.include?(node)
-      [distance, node]
-    else
-      [optimal_distance, optimal_node]
-    end
-  end
-end
+# edges = [[0, 1], [1, 2], [0, 2]]
+# weights = [0.5, 0.5, 0.2]
+# num_vertices = 3
+# start = 0
+# finito = 2
 
-def adjacent_edges(weights, edges, num_nodes)
-  result = Array.new(num_nodes, [])
-  edges.each_with_index do |(a, b), index|
-    result[a] = [*result[a], [1.0 / weights[index], b]]
-    result[b] = [*result[b], [1.0 / weights[index], a]]
-  end
-  result
-end
-
-edges = [[0, 1], [1, 2], [0, 2]]
-weights = [0.5, 0.5, 0.2]
-n = 3
-start = 0
-finito = 2
-
-n = 5
-edges = [[2,3],[1,2],[3,4],[1,3],[1,4],[0,1],[2,4],[0,4],[0,2]]
-weights = [0.06,0.26,0.49,0.25,0.2,0.64,0.23,0.21,0.77]
+num_vertices = 5
+edges = [[2, 3], [1, 2], [3, 4], [1, 3], [1, 4], [0, 1], [2, 4], [0, 4], [0, 2]]
+weights = [0.06, 0.26, 0.49, 0.25, 0.2, 0.64, 0.23, 0.21, 0.77]
 start = 0
 finito = 3
 
-p max_probability(n, edges, weights, start, finito)
-p max_probability_with_queues(n, edges, weights, start, finito)
-p max_probability_with_heap(n, edges, weights, start, finito)
+p Djsktra.new(num_vertices, edges, weights).execute(start, finito)
+p DjsktraQ.new(num_vertices, edges, weights).execute(start, finito)
+# p max_probability_with_heap(num_vertices, edges, weights, start, finito)
