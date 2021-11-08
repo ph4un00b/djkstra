@@ -9,9 +9,8 @@ class MinHeap
   TOP_HEAP = 0
   # array can be unsorted
   def initialize(array)
-    @nodes = array.each_with_index.inject(Hash.new) do |memo, (value, index)|
+    @nodes = array.each_with_index.each_with_object({}) do |(_value, index), memo|
       memo[index] = index
-      memo
     end
 
     @heap = build_heap(array)
@@ -28,9 +27,13 @@ class MinHeap
     array
   end
 
+  def empty?
+    @heap.empty?
+  end
+
   # time O(log n)
-  def update! node, cost
-    @heap[@nodes[node]] = [cost, node] 
+  def update!(node, cost)
+    @heap[@nodes[node]] = [cost, node]
     sift_up(@nodes[node], @heap)
   end
 
@@ -108,35 +111,28 @@ def max_probability_with_heap(n, edges, succ_prob, start, finito)
   heap = MinHeap.new([Float::INFINITY] * n)
   heap.update(start, OPTIMAL_COST)
   adjacent_list = adjacent_edges(succ_prob, edges, n)
-  path = Set.new
 
   # time O(v)
-  until path.size == n
+  until heap.empty?
     # time log(v)
     current_cost, current_node = heap.remove!
-
     break if current_cost == Float::INFINITY
 
     # time O(edges)
-    unless path.include? current_node
-      relax_distances!(adjacent_list[closest_node], path,heap, distances, current_cost)
-      path.add current_node
-    end
+    relax_distances_h!(adjacent_list[current_node], heap, distances, current_cost)
   end
 
   1.0 / distances[finito]
 end
 
-def relax_distances_h!(edges,path,heap, distances, current_cost)
+def relax_distances_h!(edges, heap, distances, current_cost)
   edges.each do |(edge_cost, edge_destiny)|
-    unless path.include? edge_destiny
-      if new_cost < distances[edge_destiny]
-        new_cost = edge_cost * current_cost
-        distances[edge_destiny] = new_cost
-        # time log(v)
-        heap.update edge_destiny, new_cost
-      end
-    end
+    new_cost = edge_cost * current_cost
+    next unless new_cost < distances[edge_destiny]
+
+    distances[edge_destiny] = new_cost
+    # time log(v)
+    heap.update edge_destiny, new_cost
   end
 end
 
