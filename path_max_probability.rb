@@ -75,8 +75,9 @@ class MinHeap
   end
 
   def swap(a, b, heap)
-    heap[a] = heap[a]
-    heap[b] = heap[b]
+    tmp = heap[a]
+    heap[a] = heap[b]
+    heap[b] = tmp
   end
 end
 
