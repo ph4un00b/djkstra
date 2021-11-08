@@ -29,20 +29,27 @@ class MinHeap
   end
 
   # time O(log n)
-  def insert(value)
+  def update! node, cost
+    @heap[@nodes[node]] = [cost, node] 
+    sift_up(@nodes[node], @heap)
+  end
+
+  # time O(log n)
+  def insert!(value)
     @heap.push value
     last_index = @heap.size - 1
     sift_up(last_index, @heap)
   end
 
   # time O(log n)
-  def remove
+  def remove!
     last_index = @heap.size - 1
     swap(TOP_HEAP, last_index, @heap)
-    value_to_remove = @heap.pop
+    cost, value_to_remove = @heap.pop
+    @nodes.delete value_to_remove
     sift_down(TOP_HEAP, last_index, @heap)
 
-    value_to_remove
+    [cost, value_to_remove]
   end
 
   def peek
