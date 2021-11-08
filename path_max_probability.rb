@@ -9,6 +9,11 @@ class MinHeap
   TOP_HEAP = 0
   # array can be unsorted
   def initialize(array)
+    @nodes = array.each_with_index.inject(Hash.new) do |memo, (value, index)|
+      memo[index] = index
+      memo
+    end
+
     @heap = build_heap(array)
   end
 
@@ -52,9 +57,13 @@ class MinHeap
     while child_left_index <= last_index
       child_right_index = current_index * 2 + 2 <= last_index ? current_index * 2 + 2 : -1
 
-      index_to_swap = child_right_index != -1 && heap[child_right_index] < heap[child_left_index] ? child_right_index : child_left_index
+      cost_a = heap[child_left_index].first
+      cost_b = heap[child_right_index].first
+      index_to_swap = child_right_index != -1 && cost_b < cost_a ? child_right_index : child_left_index
 
-      if heap[index_to_swap] < heap[current_index]
+      cost_to_swap = heap[index_to_swap].first
+      cost_current = heap[current_index].first
+      if cost_to_swap < cost_current
         swap(index_to_swap, current_index, heap)
         current_index = index_to_swap
         child_left_index = current_index * 2 + 1
@@ -67,7 +76,10 @@ class MinHeap
   # time O(log n)
   def sift_up(current_index, heap)
     parent_index = ((current_index - 1) / 2).floor
-    while current_index > TOP_HEAP && heap[current_index] < heap[parent_index]
+
+    cost_current = heap[current_index].first
+    cost_parent = heap[parent_index].first
+    while current_index > TOP_HEAP && cost_current < cost_parent
       swap(current_index, parent_index, heap)
       current_index = parent_index
       parent_index = ((current_index - 1) / 2).floor
