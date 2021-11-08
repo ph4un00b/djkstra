@@ -2,14 +2,83 @@
 
 # https://leetcode.com/problems/path-with-maximum-probability/
 
-# @param {Integer} n
-# @param {Integer[][]} edges
-# @param {Float[]} succ_prob
-# @param {Integer} start
-# @param {Integer} end
-# @return {Float}
-
 require 'set'
+
+# binary tree is 'complete'
+class MinHeap
+  TOP_HEAP = 0
+  # array can be unsorted
+  def initialize(array)
+    @heap = build_heap(array)
+  end
+
+  # time O(n)
+  def build_heap(array)
+    last_index = array.size - 1
+    first_parent_index = ((last_index - 1) / 2).floor
+    (0..first_parent_index).reverse.each do |index|
+      sift_down(index, array.size, array)
+    end
+
+    array
+  end
+
+  # time O(log n)
+  def insert(value)
+    @heap.push value
+    last_index = @heap.size - 1
+    sift_up(last_index, @heap)
+  end
+
+  # time O(log n)
+  def remove
+    last_index = @heap.size - 1
+    swap(TOP_HEAP, last_index, @heap)
+    value_to_remove = @heap.pop
+    sift_down(TOP_HEAP, last_index, @heap)
+
+    value_to_remove
+  end
+
+  def peek
+    @heap.first
+  end
+
+  private
+
+  # time O(log n)
+  def sift_down(current_index, last_index, heap)
+    child_left_index = current_index * 2 + 1
+    while child_left_index <= last_index
+      child_right_index = current_index * 2 + 2 <= last_index ? current_index * 2 + 2 : -1
+
+      index_to_swap = child_right_index != -1 && heap[child_right_index] < heap[child_left_index] ? child_right_index : child_left_index
+
+      if heap[index_to_swap] < heap[current_index]
+        swap(index_to_swap, current_index, heap)
+        current_index = index_to_swap
+        child_left_index = current_index * 2 + 1
+      else
+        break # since it is in the correct position
+      end
+    end
+  end
+
+  # time O(log n)
+  def sift_up(current_index, heap)
+    parent_index = ((current_index - 1) / 2).floor
+    while current_index > TOP_HEAP && heap[current_index] < heap[parent_index]
+      swap(current_index, parent_index, heap)
+      current_index = parent_index
+      parent_index = ((current_index - 1) / 2).floor
+    end
+  end
+
+  def swap(a, b, heap)
+    heap[a] = heap[a]
+    heap[b] = heap[b]
+  end
+end
 
 OPTIMAL_COST = 1.0
 def max_probability_with_queues(n, edges, succ_prob, start, finito)
@@ -17,7 +86,7 @@ def max_probability_with_queues(n, edges, succ_prob, start, finito)
   distances[start] = OPTIMAL_COST
   queue = []
   queue.push([OPTIMAL_COST, start])
-  adjacent_list = get_adjacent_list(succ_prob, edges, n)
+  adjacent_list = adjacent_edges(succ_prob, edges, n)
 
   until queue.empty?
     current_cost, current_node = queue.shift
@@ -41,7 +110,7 @@ def max_probability(n, edges, succ_prob, start, finito)
   distances = [Float::INFINITY] * n
   distances[start] = 1.0
   path = Set.new
-  adjacent_list = get_adjacent_list(succ_prob, edges, n)
+  adjacent_list = adjacent_edges(succ_prob, edges, n)
 
   until path.size == n
     closest_distance, closest_node = closest_branch(distances, path)
@@ -73,7 +142,7 @@ def closest_branch(distances, path)
   end
 end
 
-def get_adjacent_list(weights, edges, num_nodes)
+def adjacent_edges(weights, edges, num_nodes)
   result = Array.new(num_nodes, [])
   edges.each_with_index do |(a, b), index|
     result[a] = [*result[a], [1.0 / weights[index], b]]
