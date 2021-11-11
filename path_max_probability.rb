@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# too much dj's
+#
 # https://leetcode.com/problems/path-with-maximum-probability/
 
 require 'set'
@@ -8,6 +10,10 @@ OPTIMAL_COST = 1.0
 
 # djsktra with heap time: O(n + e) * O(log n)
 # todo: implement heap
+# todo: do it with some testing, in order to get
+# the diamond out of it.
+#
+# todo: put some tests on the dj's too! then refactor once more!
 class DjsktraHeap
   def initialize(num_vertices, edges, succ_prob)
     @distances = [Float::INFINITY] * num_vertices
